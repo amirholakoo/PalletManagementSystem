@@ -21,15 +21,7 @@ wheels/
 *.egg
 MANIFEST
 
-# PyTorch
-*.pth
-*.pt
-
-# ONNX models (generated files)
-*.onnx
-
 # Images (captured during runtime)
-image.jpg
 tracking_*.jpg
 
 # Virtual environments
