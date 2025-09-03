@@ -33,10 +33,11 @@ if __name__ == "__main__":
     # Configuration
     MODEL_PATH = "yoloe-11m-seg.pt"
     TEXT_PROMPTS = ["bag","sack", "gunny", "sack with text on it",
-                    "bag of strach naterial", 
-                    "white strach sack with some texts on it", 
+                    "bag of starch naterial", 
+                    "white starch sack with some texts on it", 
                     "sack of raw factory materials",
                     "plastic bag containing strach powder",]  
+                     "sack of powders with some texts on it",
     RESOLUTION = 640  
 
     print("🔄 Converting YOLOE model to ONNX with text prompts...")
