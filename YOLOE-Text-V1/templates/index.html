@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Eye (YOLOE-v2 ONNX Edition)</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        .header h1 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            margin-top: 10px;
+        }
+        .status-indicator {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin: 10px 5px;
+        }
+        .status-onnx {
+            background: #2ecc71;
+            color: white;
+        }
+        .status-pytorch {
+            background: #f39c12;
+            color: white;
+        }
+        .status-offline {
+            background: #e74c3c;
+            color: white;
+        }
+        .stream-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        .stream-wrapper {
+            position: relative;
+            display: inline-block;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .stream-image {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        .stream-overlay {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        .control-group {
+            display: inline-block;
+            margin: 10px;
+            vertical-align: top;
+        }
+        .btn {
+            display: inline-block;
+            margin: 5px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .info-card {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .info-card h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        .info-card p {
+            margin: 5px 0;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        .loading {
+            display: none;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Smart Eye</h1>
+            <div class="subtitle">YOLOE-v2 Object Detection</div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <h4>🎥 Stream Controls</h4>
+                <a href="/config" class="btn btn-secondary">📋 Configuration</a>
+                <button onclick="showDebugInfo()" class="btn btn-secondary">🔍 Debug Info</button>
+            </div>
+            <div class="control-group">
+                <h4>🎯 Tracking Controls</h4>
+                <button id="toggleTracking" class="btn btn-success" onclick="toggleTracking()">🔄 Enable Tracking</button>
+                <button id="resetTracking" class="btn btn-warning" onclick="resetTracking()">🔄 Reset Tracker</button>
+            </div>
+            <div class="control-group">
+                <h4>📊 Status</h4>
+                <div id="trackingStatus" class="status-indicator status-offline">Tracking: OFF</div>
+                <div id="activeTracksCount" class="status-indicator status-offline">Tracks: 0</div>
+            </div>
+        </div>
+        
+        <div class="stream-container">
+            <div class="stream-wrapper">
+                <img id="stream" src="{{ url_for('video_feed') }}" class="stream-image" onerror="handleStreamError()" onload="handleStreamLoad()">
+                <div class="stream-overlay" id="stream-overlay">
+                    📡 Live Feed
+                </div>
+            </div>
+            <div class="loading" id="loading">
+                🔄 Loading camera feed...
+            </div>
+        </div>
+        
+
+    </div>
+
+    <script>
+        function handleStreamError() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('stream-overlay').textContent = '❌ Stream Error';
+        }
+
+        function handleStreamLoad() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('stream-overlay').textContent = '📡 Live Feed';
+        }
+
+        function toggleTracking() {
+            fetch('/api/tracking/toggle', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateTrackingUI(data.tracking_enabled);
+                        alert(data.message);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to toggle tracking');
+                });
+        }
+
+        function resetTracking() {
+            fetch('/api/tracking/reset', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        updateTrackingStatus();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to reset tracking');
+                });
+        }
+
+        function updateTrackingUI(enabled) {
+            const toggleBtn = document.getElementById('toggleTracking');
+            const statusDiv = document.getElementById('trackingStatus');
+            
+            if (enabled) {
+                toggleBtn.textContent = '⏹️ Disable Tracking';
+                toggleBtn.className = 'btn btn-warning';
+                statusDiv.textContent = 'Tracking: ON';
+                statusDiv.className = 'status-indicator status-onnx';
+            } else {
+                toggleBtn.textContent = '🔄 Enable Tracking';
+                toggleBtn.className = 'btn btn-success';
+                statusDiv.textContent = 'Tracking: OFF';
+                statusDiv.className = 'status-indicator status-offline';
+            }
+        }
+
+        function updateTrackingStatus() {
+            fetch('/api/tracking/status')
+                .then(response => response.json())
+                .then(data => {
+                    updateTrackingUI(data.tracking_enabled);
+                    document.getElementById('activeTracksCount').textContent = `Tracks: ${data.active_tracks}`;
+                    document.getElementById('activeTracksCount').className = 
+                        data.active_tracks > 0 ? 'status-indicator status-onnx' : 'status-indicator status-offline';
+                })
+                .catch(error => {
+                    console.error('Error fetching tracking status:', error);
+                });
+        }
+
+        function showDebugInfo() {
+            fetch('/api/debug')
+                .then(response => response.json())
+                .then(data => {
+                    let debugText = 'Debug Information:\n\n';
+                    debugText += `Camera Initialized: ${data.camera_initialized}\n`;
+                    debugText += `Tracking Enabled: ${data.tracking_enabled}\n`;
+                    debugText += `Tracker Initialized: ${data.tracker_initialized}\n`;
+                    debugText += `Active Tracks: ${data.active_tracks}\n`;
+                    debugText += `Camera Has Raw Frame: ${data.camera_has_raw_frame}\n`;
+                    debugText += `Model Type: ${data.model_type || 'Unknown'}\n`;
+                    
+                    alert(debugText);
+                })
+                .catch(error => {
+                    console.error('Error fetching debug info:', error);
+                    alert('Failed to fetch debug information');
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const stream = document.getElementById('stream');
+            stream.addEventListener('load', function() {
+                document.getElementById('loading').style.display = 'none';
+            });
+            
+            // Update tracking status on page load
+            updateTrackingStatus();
+            
+            // Update tracking status every 2 seconds
+            setInterval(updateTrackingStatus, 2000);
+        });
+    </script>
+</body>
+</html> 

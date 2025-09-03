@@ -1,0 +1,13 @@
+Flask
+opencv-python
+numpy==1.24.3
+torch
+torchvision
+picamera2 
+supervision
+transformers
+ultralytics
+onnx
+onnxruntime
+filterpy
+scipy 
