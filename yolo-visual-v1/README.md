@@ -70,7 +70,7 @@ This guide covers the entire process from image capture to model training.
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/amirholakoo/PalletManagementSystem
+git clone https://github.com/amirholakoo/PalletManagementSystem.git
 
 cd PalletManagementSystem/yoloe-visual-v1
 ```
